@@ -104,7 +104,7 @@ const logoVars = {
 
 function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const inputAnimation = useAnimation();
+  //const inputAnimation = useAnimation();
   const homeUrlMatch = useMatch("/");
   const tvUrlMatch = useMatch("/tv");
   const { scrollY } = useScroll();
@@ -114,19 +114,8 @@ function Header() {
     ["rgba(0,0,0,0)", "rgba(0,0,0,1)"]
   );
 
-  useMotionValueEvent(scrollY, "change", (e) => console.log(e));
+  // useMotionValueEvent(scrollY, "change", (e) => console.log(e));
   const toggleSearch = () => {
-    if (searchOpen) {
-      // 열려있는 상태이므로 인풋을 닫는 애니메이션
-      inputAnimation.start({
-        scaleX: 0,
-      });
-    } else {
-      // 닫혀있는 상태이므로 인풋을 여는 애니메이션
-      inputAnimation.start({
-        scaleX: 1,
-      });
-    }
     setSearchOpen((prev) => !prev);
   };
 
@@ -172,7 +161,8 @@ function Header() {
             ></motion.path>
           </motion.svg>
           <SearchInput
-            animate={inputAnimation}
+            animate={{ scaleX: searchOpen ? 1 : 0 }}
+            initial={{ scaleX: 0 }}
             transition={{ type: "linear" }}
             placeholder="search video"
           />
