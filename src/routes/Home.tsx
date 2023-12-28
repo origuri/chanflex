@@ -3,10 +3,12 @@ import { IGetMoviesResult, getMovies } from "../api";
 import styled from "styled-components";
 import Loading from "../components/Loading";
 import { makeImagePath } from "../utils";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 
 const Wrapper = styled.div`
   background-color: black;
+  overflow-x: hidden; // x축 스크롤바 안보여줌
 `;
 
 const Banner = styled.div<{ bgPhoto: string }>`
@@ -39,6 +41,7 @@ const Overview = styled.p`
 
 const Slider = styled(motion.div)`
   position: relative;
+  top: -100px;
 `;
 
 const Row = styled(motion.div)`
@@ -51,15 +54,33 @@ const Row = styled(motion.div)`
 
 const Box = styled(motion.div)`
   background-color: white;
-  height: 200px;
+  height: 150px;
+  color: black;
+  font-size: 26px;
 `;
 
+// variants
+
+const rowVars = {
+  hidden: {
+    x: window.outerWidth,
+  },
+  visible: {
+    x: 0,
+  },
+  exit: {
+    x: -window.outerWidth,
+  },
+};
 function Home() {
   const { data, isLoading } = useQuery<IGetMoviesResult>(
     ["movies", "nowPlaying"],
     getMovies
   );
   console.log(data, isLoading);
+
+  const [index, setIndex] = useState(0);
+  const increaseIndex = () => setIndex((prev) => prev + 1);
 
   return (
     <Wrapper>
@@ -68,35 +89,28 @@ function Home() {
       ) : (
         <>
           {/* data?.results[0].backdrop_path가 undefined 속성이 있기 때문에 없을 시에 경우도 적어줘야 함*/}
-          <Banner bgPhoto={makeImagePath(data?.results[0].backdrop_path || "")}>
+          <Banner
+            bgPhoto={makeImagePath(data?.results[0].backdrop_path || "")}
+            onClick={increaseIndex}
+          >
             <Title>{data?.results[0].title}</Title>
             <Overview>{data?.results[0].overview}</Overview>
           </Banner>
           <Slider>
-            <Row>
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-            </Row>
-            <Row>
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-            </Row>
-            <Row>
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-              <Box />
-            </Row>
+            <AnimatePresence>
+              <Row
+                key={index}
+                variants={rowVars}
+                initial="hidden"
+                animate="visible"
+                transition={{ type: "linear", duration: 1 }}
+                exit="exit"
+              >
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Box key={i}>{i}</Box>
+                ))}
+              </Row>
+            </AnimatePresence>
           </Slider>
         </>
       )}
