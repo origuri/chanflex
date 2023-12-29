@@ -20,6 +20,9 @@ export interface IMovie {
   overview: string;
   poster_path: string;
   title: string;
+  genre_ids: {
+    [key: number]: number;
+  };
 }
 
 export async function getMovies() {

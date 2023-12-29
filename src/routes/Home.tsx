@@ -6,6 +6,7 @@ import { makeImagePath } from "../utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import useWindowDimensions from "../useWindowDemensions";
+import { Movie } from "@mui/icons-material";
 
 const Wrapper = styled.div`
   background-color: black;
@@ -53,27 +54,72 @@ const Row = styled(motion.div)`
   width: 100%;
 `;
 
-const Box = styled(motion.div)<{ $bgphoto: string }>`
+/* background-image: url(${(props) => props.$bgphoto});
+background-size: cover;
+background-position: center center; */
+
+const Box = styled(motion.div)`
+  position: relative;
   background-color: white;
   height: 150px;
-  color: black;
-  font-size: 26px;
-  background-image: url(${(props) => props.$bgphoto});
+
+  // box div의 첫번째 div는 왼쪽에서 시작해서 중앙으로 커짐.(애니메이션 scale 걸어놓음)
+  &:first-child {
+    transform-origin: left center;
+  }
+  // box div의 마지막 div는 오른쪽에서 시작해서 중앙으로 커짐.(애니메이션 scale 걸어놓음)
+  &:last-child {
+    transform-origin: right center;
+  }
+  h4 {
+    text-align: center;
+    font-size: 18px;
+  }
+`;
+const BoxImg = styled(motion.div)<{ $bgPhoto: string }>`
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url(${(props) => props.$bgPhoto});
   background-size: cover;
   background-position: center center;
+`;
+const BoxInfo = styled(motion.div)`
+  position: absolute;
+  width: 100%;
+  height: 130%;
+  top: 0;
+  padding: 10px;
+  background-color: ${(props) => props.theme.black.lighter};
+  opacity: 1;
 `;
 
 // variants
 
-const rowVars = {
-  hidden: {
-    x: window.outerWidth,
+const boxVars = {
+  normal: {
+    scale: 1,
+    transition: {
+      type: "linear",
+    },
   },
-  visible: {
-    x: 0,
+  // hover에만 delay를 준 것
+  hover: {
+    zIndex: 99,
+    scale: 1.3,
+    y: -50,
+
+    transition: {
+      delay: 0.3,
+      type: "linear",
+    },
   },
-  exit: {
-    x: -window.outerWidth,
+};
+
+const boxInfoVars = {
+  hover: {
+    opacity: 1,
   },
 };
 
@@ -95,12 +141,12 @@ function Home() {
     setLeaving(true);
     // 첫번째 영화를 사용 중이기 때문에 -1 함
     const totalmovies = data?.results.length - 1;
-    console.log("totalmovies.length => ", totalmovies);
+    //  console.log("totalmovies.length => ", totalmovies);
 
     // 같은 의미
     //const limitIndex = Math.ceil(totalmovies / offSet) - 1;
     const limitIndex = Math.floor(totalmovies / offSet);
-    console.log("limitIndex => ", limitIndex);
+    // console.log("limitIndex => ", limitIndex);
     setIndex((prev) => (prev === limitIndex ? 0 : prev + 1));
   };
 
@@ -139,12 +185,25 @@ function Home() {
                   .slice(offSet * index, offSet * index + offSet)
                   .map((moive) => (
                     <Box
+                      variants={boxVars}
+                      initial="normal"
+                      whileHover="hover"
                       key={moive.id}
-                      $bgphoto={makeImagePath(
+                      /*  $bgphoto={makeImagePath(
                         moive.backdrop_path || "",
                         "w500"
-                      )}
-                    ></Box>
+                      )} */
+                    >
+                      <BoxImg
+                        $bgPhoto={makeImagePath(
+                          moive.backdrop_path || "",
+                          "w500"
+                        )}
+                      />
+                      <BoxInfo variants={boxInfoVars}>
+                        <h4>{moive.title}</h4>
+                      </BoxInfo>
+                    </Box>
                   ))}
               </Row>
             </AnimatePresence>
