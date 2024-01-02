@@ -106,6 +106,7 @@ function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   //const inputAnimation = useAnimation();
   const homeUrlMatch = useMatch("/");
+
   const tvUrlMatch = useMatch("/tv");
   const { scrollY } = useScroll();
   const bgColor = useTransform(

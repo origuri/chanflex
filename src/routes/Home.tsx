@@ -3,10 +3,11 @@ import { IGetMoviesResult, getMovies } from "../api";
 import styled from "styled-components";
 import Loading from "../components/Loading";
 import { makeImagePath } from "../utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll } from "framer-motion";
 import { useState } from "react";
 import useWindowDimensions from "../useWindowDemensions";
 import { Movie } from "@mui/icons-material";
+import { useMatch, useNavigate } from "react-router-dom";
 
 const Wrapper = styled.div`
   background-color: black;
@@ -58,11 +59,14 @@ const Row = styled(motion.div)`
 background-size: cover;
 background-position: center center; */
 
-const Box = styled(motion.div)`
+const Box = styled(motion.div)<{ $bgPhoto: string }>`
   position: relative;
   background-color: white;
   height: 150px;
-
+  background-image: url(${(props) => props.$bgPhoto});
+  background-size: cover;
+  background-position: center center;
+  cursor: pointer;
   // box div의 첫번째 div는 왼쪽에서 시작해서 중앙으로 커짐.(애니메이션 scale 걸어놓음)
   &:first-child {
     transform-origin: left center;
@@ -76,23 +80,58 @@ const Box = styled(motion.div)`
     font-size: 18px;
   }
 `;
-const BoxImg = styled(motion.div)<{ $bgPhoto: string }>`
-  position: absolute;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url(${(props) => props.$bgPhoto});
-  background-size: cover;
-  background-position: center center;
-`;
+
 const BoxInfo = styled(motion.div)`
   position: absolute;
   width: 100%;
-  height: 130%;
-  top: 0;
+  bottom: 0;
   padding: 10px;
   background-color: ${(props) => props.theme.black.lighter};
-  opacity: 1;
+  opacity: 0;
+  h4 {
+    text-align: center;
+    font-size: 12px;
+  }
+`;
+
+const Overlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+`;
+
+const BigMovie = styled(motion.div)<{ $scrollY: number }>`
+  position: absolute;
+  background-color: ${(props) => props.theme.black.lighter};
+  width: 40vw;
+  height: 80vh;
+  top: ${(props) => props.$scrollY + 100}px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  border-radius: 15px;
+  overflow: hidden;
+`;
+
+const BigCover = styled.div`
+  width: 100%;
+  height: 200px;
+  background-position: center center;
+  background-size: cover;
+`;
+const BigTitle = styled.div`
+  text-align: center;
+  padding: 10px;
+  font-size: 28px;
+  position: relative;
+  top: -70px;
+`;
+
+const BigOverview = styled.p`
+  padding: 20px;
 `;
 
 // variants
@@ -120,12 +159,27 @@ const boxVars = {
 const boxInfoVars = {
   hover: {
     opacity: 1,
+    transition: {
+      delay: 0.5,
+
+      duaration: 0.1,
+      type: "tween",
+    },
   },
 };
 
 const offSet = 6;
 
 function Home() {
+  // url 변화를 주기 위한 react hook
+  const navigate = useNavigate();
+  // movie url을 보기 위한 match
+  const bigMovieMatch = useMatch("/movies/:movieId");
+  //console.log("d이거 -> ", bigMovieMatch);
+
+  const { scrollY } = useScroll();
+  //console.log("스크롤 -> ", scrollY);
+
   const { data, isLoading } = useQuery<IGetMoviesResult>(
     ["movies", "nowPlaying"],
     getMovies
@@ -157,6 +211,22 @@ function Home() {
   // 윈도우 resize 추적해주는 hook
   const width = useWindowDimensions();
 
+  const onBoxClicked = (movieId: number) => {
+    navigate(`/movies/${movieId}`);
+  };
+
+  // 박스 모달이 뜨고 다른 곳을 눌렀을 때 url을 바꿔주는 함수
+  const onOverlayClicked = () => {
+    navigate("/");
+  };
+  // 모달창이 띄워졌다면, result 배열에서 id가 같은 것을 찾은 것.
+  const clickedMovie =
+    bigMovieMatch?.params.movieId &&
+    data?.results.find(
+      (movie) => movie.id === Number(bigMovieMatch.params.movieId)
+    );
+  console.log("이거 확인 -> ", clickedMovie);
+
   return (
     <Wrapper>
       {isLoading ? (
@@ -183,31 +253,57 @@ function Home() {
                 {data?.results
                   .slice(1)
                   .slice(offSet * index, offSet * index + offSet)
-                  .map((moive) => (
+                  .map((movie) => (
                     <Box
+                      layoutId={movie.id + ""}
+                      onClick={() => onBoxClicked(movie.id)}
                       variants={boxVars}
                       initial="normal"
                       whileHover="hover"
-                      key={moive.id}
-                      /*  $bgphoto={makeImagePath(
-                        moive.backdrop_path || "",
+                      key={movie.id}
+                      $bgPhoto={makeImagePath(
+                        movie.backdrop_path || "",
                         "w500"
-                      )} */
+                      )}
                     >
-                      <BoxImg
-                        $bgPhoto={makeImagePath(
-                          moive.backdrop_path || "",
-                          "w500"
-                        )}
-                      />
                       <BoxInfo variants={boxInfoVars}>
-                        <h4>{moive.title}</h4>
+                        <h4>{movie.title}</h4>
                       </BoxInfo>
                     </Box>
                   ))}
               </Row>
             </AnimatePresence>
           </Slider>
+          <AnimatePresence>
+            {bigMovieMatch ? (
+              <>
+                <Overlay
+                  onClick={onOverlayClicked}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+                <BigMovie
+                  layoutId={bigMovieMatch.params.movieId}
+                  $scrollY={scrollY.get()}
+                >
+                  {clickedMovie && (
+                    <>
+                      <BigCover
+                        style={{
+                          backgroundImage: `url(${makeImagePath(
+                            clickedMovie.backdrop_path,
+                            "w500"
+                          )})`,
+                        }}
+                      />
+                      <BigTitle>{clickedMovie.title}</BigTitle>
+                      <BigOverview>{clickedMovie.overview}</BigOverview>
+                    </>
+                  )}
+                </BigMovie>
+              </>
+            ) : null}
+          </AnimatePresence>
         </>
       )}
     </Wrapper>
